@@ -2,6 +2,7 @@ package com.odogwudev.esdiacwebrtcdemo.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.odogwudev.esdiacwebrtcdemo.AudioRouteController
 import com.odogwudev.esdiacwebrtcdemo.verto.VertoClient
 import com.odogwudev.esdiacwebrtcdemo.verto.VertoConfig
 import com.odogwudev.esdiacwebrtcdemo.verto.VertoEvent
@@ -12,6 +13,9 @@ import com.shepeliev.webrtckmp.IceCandidate
 import com.shepeliev.webrtckmp.PeerConnectionState
 import com.shepeliev.webrtckmp.SessionDescription
 import com.shepeliev.webrtckmp.SessionDescriptionType
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,7 +38,9 @@ data class CallUiState(
     val screen: Screen = Screen.HOME,
     val destinationNumber: String = "",
     val isMuted: Boolean = false,
+    val isSpeakerOn: Boolean = false,
     val callPhase: CallPhase = CallPhase.Idle,
+    val connectedDurationSeconds: Long = 0L,
     val connectionState: PeerConnectionState = PeerConnectionState.New,
     val errorMessage: String? = null
 )
@@ -47,6 +53,7 @@ class CallViewModel : ViewModel() {
     private val vertoConfig = VertoConfig()
     private var vertoClient: VertoClient? = null
     private val webRtcClient = WebRtcClient()
+    private var callTimerJob: Job? = null
 
     private val webRtcListener = object : WebRtcListener {
         override fun onIceCandidateGenerated(candidate: IceCandidate) {
@@ -63,12 +70,16 @@ class CallViewModel : ViewModel() {
     }
 
     fun makeCall(destinationNumber: String) {
+        stopConnectedTimer()
+        AudioRouteController.reset()
         _uiState.update {
             it.copy(
                 screen = Screen.IN_CALL,
                 destinationNumber = destinationNumber,
                 isMuted = false,
+                isSpeakerOn = false,
                 callPhase = CallPhase.Connecting,
+                connectedDurationSeconds = 0L,
                 connectionState = PeerConnectionState.New,
                 errorMessage = null
             )
@@ -87,11 +98,21 @@ class CallViewModel : ViewModel() {
             client.state.collect { state ->
                 when (state) {
                     VertoState.LoggedIn -> sendInvite(client, destinationNumber)
-                    VertoState.Calling -> _uiState.update { it.copy(callPhase = CallPhase.Calling) }
-                    VertoState.Ringing -> _uiState.update { it.copy(callPhase = CallPhase.Ringing) }
-                    VertoState.InCall -> _uiState.update { it.copy(callPhase = CallPhase.Connected) }
-                    VertoState.Error -> _uiState.update { it.copy(callPhase = CallPhase.Error) }
+                    VertoState.Calling -> _uiState.update { current ->
+                        if (current.callPhase == CallPhase.Connected) current
+                        else current.copy(callPhase = CallPhase.Calling)
+                    }
+                    VertoState.Ringing -> _uiState.update { current ->
+                        if (current.callPhase == CallPhase.Connected) current
+                        else current.copy(callPhase = CallPhase.Ringing)
+                    }
+                    VertoState.InCall -> markCallConnected()
+                    VertoState.Error -> {
+                        stopConnectedTimer()
+                        _uiState.update { it.copy(callPhase = CallPhase.Error) }
+                    }
                     VertoState.Disconnected -> {
+                        stopConnectedTimer()
                         if (_uiState.value.callPhase != CallPhase.Idle) {
                             _uiState.update { it.copy(callPhase = CallPhase.Ended) }
                         }
@@ -113,14 +134,18 @@ class CallViewModel : ViewModel() {
                         webRtcClient.setRemoteDescription(remoteSdp)
                     }
                     is VertoEvent.Answer -> {
-                        val remoteSdp = SessionDescription(
-                            type = SessionDescriptionType.Answer,
-                            sdp = event.sdp
-                        )
-                        webRtcClient.setRemoteDescription(remoteSdp)
+                        event.sdp?.let { sdp ->
+                            val remoteSdp = SessionDescription(
+                                type = SessionDescriptionType.Answer,
+                                sdp = sdp
+                            )
+                            webRtcClient.setRemoteDescription(remoteSdp)
+                        }
+                        markCallConnected()
                     }
                     is VertoEvent.Bye -> endCall()
                     is VertoEvent.Error -> {
+                        stopConnectedTimer()
                         _uiState.update {
                             it.copy(
                                 errorMessage = event.message,
@@ -156,7 +181,14 @@ class CallViewModel : ViewModel() {
         webRtcClient.setAudioEnabled(!newMuted)
     }
 
+    fun toggleSpeaker() {
+        val newSpeakerState = !_uiState.value.isSpeakerOn
+        _uiState.update { it.copy(isSpeakerOn = newSpeakerState) }
+        AudioRouteController.setSpeakerEnabled(newSpeakerState)
+    }
+
     fun endCall() {
+        stopConnectedTimer()
         viewModelScope.launch {
             try {
                 vertoClient?.sendBye()
@@ -165,12 +197,44 @@ class CallViewModel : ViewModel() {
         webRtcClient.dispose()
         vertoClient?.disconnect()
         vertoClient = null
+        AudioRouteController.reset()
         _uiState.update { CallUiState() }
     }
 
     override fun onCleared() {
         super.onCleared()
+        stopConnectedTimer()
         webRtcClient.dispose()
         vertoClient?.disconnect()
+        AudioRouteController.reset()
+    }
+
+    private fun markCallConnected() {
+        if (_uiState.value.callPhase == CallPhase.Connected) return
+        _uiState.update {
+            it.copy(
+                callPhase = CallPhase.Connected,
+                connectedDurationSeconds = 0L
+            )
+        }
+        startConnectedTimer()
+    }
+
+    private fun startConnectedTimer() {
+        stopConnectedTimer()
+        callTimerJob = viewModelScope.launch {
+            while (isActive) {
+                delay(1000)
+                _uiState.update { current ->
+                    if (current.callPhase != CallPhase.Connected) current
+                    else current.copy(connectedDurationSeconds = current.connectedDurationSeconds + 1L)
+                }
+            }
+        }
+    }
+
+    private fun stopConnectedTimer() {
+        callTimerJob?.cancel()
+        callTimerJob = null
     }
 }

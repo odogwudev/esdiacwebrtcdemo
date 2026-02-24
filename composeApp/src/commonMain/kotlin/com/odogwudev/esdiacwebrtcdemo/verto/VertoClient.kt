@@ -104,7 +104,9 @@ class VertoClient(private val config: VertoConfig) {
                 _state.value = VertoState.LoggedIn
             }
             is VertoEvent.Media -> {
-                _state.value = VertoState.Ringing
+                if (_state.value != VertoState.InCall) {
+                    _state.value = VertoState.Ringing
+                }
             }
             is VertoEvent.Answer -> {
                 _state.value = VertoState.InCall

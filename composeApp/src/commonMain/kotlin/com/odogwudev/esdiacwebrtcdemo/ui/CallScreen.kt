@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 fun CallScreen(
     callState: CallUiState,
     onMuteToggle: () -> Unit,
+    onSpeakerToggle: () -> Unit,
     onEndCall: () -> Unit
 ) {
     Column(
@@ -72,6 +73,15 @@ fun CallScreen(
             color = statusColor,
             fontWeight = FontWeight.Medium
         )
+        if (callState.callPhase == CallPhase.Connected) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = formatDuration(callState.connectedDurationSeconds),
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onBackground,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
 
         // Error message
         callState.errorMessage?.let { error ->
@@ -135,6 +145,31 @@ fun CallScreen(
                 )
             }
 
+            // Speaker button
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                FilledIconButton(
+                    onClick = onSpeakerToggle,
+                    modifier = Modifier.size(64.dp),
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = if (callState.isSpeakerOn)
+                            Color(0xFF4CAF50)
+                        else
+                            MaterialTheme.colorScheme.secondaryContainer
+                    )
+                ) {
+                    Text(
+                        text = if (callState.isSpeakerOn) "SPK" else "EAR",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = if (callState.isSpeakerOn) "Speaker On" else "Speaker Off",
+                    style = MaterialTheme.typography.labelSmall
+                )
+            }
+
             // End call button
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 FilledIconButton(
@@ -158,5 +193,16 @@ fun CallScreen(
                 )
             }
         }
+    }
+}
+
+private fun formatDuration(totalSeconds: Long): String {
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+    return if (hours > 0) {
+        "${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}"
+    } else {
+        "${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}"
     }
 }

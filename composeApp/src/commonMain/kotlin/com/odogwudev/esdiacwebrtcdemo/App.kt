@@ -30,6 +30,7 @@ fun App() {
                 Screen.IN_CALL -> CallScreen(
                     callState = state,
                     onMuteToggle = viewModel::toggleMute,
+                    onSpeakerToggle = viewModel::toggleSpeaker,
                     onEndCall = viewModel::endCall
                 )
             }

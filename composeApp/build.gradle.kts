@@ -34,22 +34,15 @@ kotlin {
 
         framework {
             baseName = "ComposeApp"
-            isStatic = false
+            isStatic = true
         }
 
         xcodeConfigurationToNativeBuildType["CUSTOM_DEBUG"] = NativeBuildType.DEBUG
         xcodeConfigurationToNativeBuildType["CUSTOM_RELEASE"] = NativeBuildType.RELEASE
     }
 
-    listOf(
-        iosArm64(),
-        iosSimulatorArm64()
-    ).forEach { iosTarget ->
-        iosTarget.binaries.framework {
-            baseName = "ComposeApp"
-            isStatic = true
-        }
-    }
+    iosArm64()
+    iosSimulatorArm64()
     
     sourceSets {
         androidMain.dependencies {
@@ -111,4 +104,3 @@ android {
 dependencies {
     debugImplementation(libs.compose.uiTooling)
 }
-

@@ -74,7 +74,7 @@ object VertoMessages {
 sealed class VertoEvent {
     data class LoginResult(val sessId: String) : VertoEvent()
     data class Media(val sdp: String) : VertoEvent()
-    data class Answer(val sdp: String) : VertoEvent()
+    data class Answer(val sdp: String?) : VertoEvent()
     data class Bye(val cause: String?) : VertoEvent()
     data class Error(val code: Int?, val message: String) : VertoEvent()
     data class Unknown(val raw: String) : VertoEvent()
@@ -127,9 +127,9 @@ object VertoParser {
                 VertoEvent.Media(sdp)
             }
             "verto.answer" -> {
-                val sdp = params?.get("sdp")?.jsonPrimitive?.contentOrNull
-                    ?: return VertoEvent.Unknown(obj.toString())
-                VertoEvent.Answer(sdp)
+                VertoEvent.Answer(
+                    params?.get("sdp")?.jsonPrimitive?.contentOrNull
+                )
             }
             "verto.bye" -> {
                 val cause = params?.get("cause")?.jsonPrimitive?.contentOrNull
