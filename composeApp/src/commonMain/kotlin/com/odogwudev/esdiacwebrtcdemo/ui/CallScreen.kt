@@ -24,7 +24,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.odogwudev.esdiacwebrtcdemo.webrtc.PeerConnectionState
 
 @Composable
 fun CallScreen(
@@ -41,28 +40,30 @@ fun CallScreen(
     ) {
         Spacer(modifier = Modifier.height(48.dp))
 
-        // Room info
+        // Destination info
         Text(
-            text = "Room: ${callState.roomId}",
+            text = "Calling: ${callState.destinationNumber}",
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Connection status
-        val statusText = when (callState.connectionState) {
-            PeerConnectionState.NEW -> "Initializing..."
-            PeerConnectionState.CONNECTING -> "Connecting..."
-            PeerConnectionState.CONNECTED -> "Connected"
-            PeerConnectionState.DISCONNECTED -> "Reconnecting..."
-            PeerConnectionState.FAILED -> "Connection Failed"
-            PeerConnectionState.CLOSED -> "Call Ended"
+        // Call status
+        val statusText = when (callState.callPhase) {
+            CallPhase.Idle -> "Initializing..."
+            CallPhase.Connecting -> "Connecting..."
+            CallPhase.Calling -> "Calling..."
+            CallPhase.Ringing -> "Ringing..."
+            CallPhase.Connected -> "Connected"
+            CallPhase.Ended -> "Call Ended"
+            CallPhase.Error -> "Error"
         }
-        val statusColor = when (callState.connectionState) {
-            PeerConnectionState.CONNECTED -> Color(0xFF4CAF50)
-            PeerConnectionState.FAILED -> Color(0xFFF44336)
-            PeerConnectionState.DISCONNECTED -> Color(0xFFFF9800)
+        val statusColor = when (callState.callPhase) {
+            CallPhase.Connected -> Color(0xFF4CAF50)
+            CallPhase.Ringing -> Color(0xFF2196F3)
+            CallPhase.Error -> Color(0xFFF44336)
+            CallPhase.Ended -> MaterialTheme.colorScheme.onSurfaceVariant
             else -> MaterialTheme.colorScheme.onSurfaceVariant
         }
         Text(
@@ -84,7 +85,7 @@ fun CallScreen(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // Audio waveform placeholder
+        // Audio indicator
         Box(
             modifier = Modifier
                 .size(120.dp)

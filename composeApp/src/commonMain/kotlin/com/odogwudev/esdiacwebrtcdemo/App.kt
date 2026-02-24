@@ -26,7 +26,7 @@ fun App() {
                 .background(MaterialTheme.colorScheme.background)
         ) {
             when (state.screen) {
-                Screen.HOME -> HomeScreen(onJoinCall = viewModel::joinRoom)
+                Screen.HOME -> HomeScreen(onMakeCall = viewModel::makeCall)
                 Screen.IN_CALL -> CallScreen(
                     callState = state,
                     onMuteToggle = viewModel::toggleMute,

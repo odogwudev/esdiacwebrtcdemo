@@ -21,11 +21,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun HomeScreen(onJoinCall: (roomId: String) -> Unit) {
-    var roomId by remember { mutableStateOf("") }
+fun HomeScreen(onMakeCall: (destinationNumber: String) -> Unit) {
+    var destinationNumber by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
@@ -43,14 +44,19 @@ fun HomeScreen(onJoinCall: (roomId: String) -> Unit) {
         Spacer(modifier = Modifier.height(48.dp))
 
         OutlinedTextField(
-            value = roomId,
-            onValueChange = { roomId = it },
-            label = { Text("Room ID") },
-            placeholder = { Text("Enter room ID") },
+            value = destinationNumber,
+            onValueChange = { destinationNumber = it },
+            label = { Text("Destination Number") },
+            placeholder = { Text("Enter number to call") },
             singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Phone,
+                imeAction = ImeAction.Done
+            ),
             keyboardActions = KeyboardActions(
-                onDone = { if (roomId.isNotBlank()) onJoinCall(roomId.trim()) }
+                onDone = {
+                    if (destinationNumber.isNotBlank()) onMakeCall(destinationNumber.trim())
+                }
             ),
             modifier = Modifier.fillMaxWidth()
         )
@@ -58,11 +64,11 @@ fun HomeScreen(onJoinCall: (roomId: String) -> Unit) {
         Spacer(modifier = Modifier.height(24.dp))
 
         Button(
-            onClick = { onJoinCall(roomId.trim()) },
-            enabled = roomId.isNotBlank(),
+            onClick = { onMakeCall(destinationNumber.trim()) },
+            enabled = destinationNumber.isNotBlank(),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Join Call")
+            Text("Call")
         }
     }
 }
