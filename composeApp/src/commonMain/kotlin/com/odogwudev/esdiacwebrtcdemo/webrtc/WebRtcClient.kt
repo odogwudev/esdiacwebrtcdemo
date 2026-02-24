@@ -1,5 +1,6 @@
 package com.odogwudev.esdiacwebrtcdemo.webrtc
 
+import com.odogwudev.esdiacwebrtcdemo.RuntimeEnvironment
 import com.shepeliev.webrtckmp.IceCandidate
 import com.shepeliev.webrtckmp.IceServer
 import com.shepeliev.webrtckmp.MediaDevices
@@ -53,15 +54,17 @@ class WebRtcClient {
             .onEach { state -> listener.onConnectionStateChanged(state) }
             .launchIn(scope!!)
 
-        // Get local audio stream and add tracks to peer connection
-        scope!!.launch {
-            try {
-                localStream = MediaDevices.getUserMedia(audio = true, video = false)
-                localStream!!.audioTracks.forEach { track ->
-                    peerConnection!!.addTrack(track)
+        // iOS Simulator audio input can fail at RemoteIO start; use receive-audio fallback.
+        if (!RuntimeEnvironment.isSimulator()) {
+            scope!!.launch {
+                try {
+                    localStream = MediaDevices.getUserMedia(audio = true, video = false)
+                    localStream!!.audioTracks.forEach { track ->
+                        peerConnection!!.addTrack(track)
+                    }
+                } catch (e: Exception) {
+                    listener.onError("Failed to get audio: ${e.message}")
                 }
-            } catch (e: Exception) {
-                listener.onError("Failed to get audio: ${e.message}")
             }
         }
     }
