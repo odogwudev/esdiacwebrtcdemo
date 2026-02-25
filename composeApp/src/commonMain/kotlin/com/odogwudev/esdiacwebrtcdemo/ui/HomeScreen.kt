@@ -45,7 +45,16 @@ fun HomeScreen(onMakeCall: (destinationNumber: String) -> Unit) {
 
         OutlinedTextField(
             value = destinationNumber,
-            onValueChange = { destinationNumber = it },
+            onValueChange = { input ->
+
+                var cleaned = input.replace(Regex("[^0-9+]"), "")
+
+                if (cleaned.contains("+")) {
+                    cleaned = "+" + cleaned.replace("+", "")
+                }
+
+                destinationNumber = cleaned
+            },
             label = { Text("Destination Number") },
             placeholder = { Text("Enter number to call") },
             singleLine = true,
@@ -55,7 +64,9 @@ fun HomeScreen(onMakeCall: (destinationNumber: String) -> Unit) {
             ),
             keyboardActions = KeyboardActions(
                 onDone = {
-                    if (destinationNumber.isNotBlank()) onMakeCall(destinationNumber.trim())
+                    if (destinationNumber.isNotBlank()) {
+                        onMakeCall(destinationNumber.trim())
+                    }
                 }
             ),
             modifier = Modifier.fillMaxWidth()

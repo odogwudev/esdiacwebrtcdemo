@@ -46,6 +46,13 @@
             <string>UIInterfaceOrientationLandscapeLeft</string>
             <string>UIInterfaceOrientationLandscapeRight</string>
         </array>
+        <key>UIBackgroundModes</key>
+        <array>
+            <string>audio</string>
+            <string>voip</string>
+        </array>
+        <key>NSSupportsLiveActivities</key>
+        <true/>
         <key>NSCameraUsageDescription</key>
         <string>Access to the camera is required.</string>
         <key>NSMicrophoneUsageDescription</key>

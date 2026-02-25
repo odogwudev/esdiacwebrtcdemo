@@ -1,8 +1,9 @@
 package com.odogwudev.esdiacwebrtcdemo.webrtc
 
 import com.odogwudev.esdiacwebrtcdemo.RuntimeEnvironment
+import com.shepeliev.webrtckmp.BundlePolicy
 import com.shepeliev.webrtckmp.IceCandidate
-import com.shepeliev.webrtckmp.IceServer
+import com.shepeliev.webrtckmp.IceTransportPolicy
 import com.shepeliev.webrtckmp.MediaDevices
 import com.shepeliev.webrtckmp.MediaStream
 import com.shepeliev.webrtckmp.OfferAnswerOptions
@@ -24,6 +25,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 class WebRtcClient {
 
@@ -37,9 +39,9 @@ class WebRtcClient {
         scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
         val config = RtcConfiguration(
-            iceServers = listOf(
-                IceServer(urls = listOf("stun:stun.l.google.com:19302"))
-            )
+            iceServers = listOf(),
+            iceTransportPolicy = IceTransportPolicy.All,
+            bundlePolicy = BundlePolicy.MaxBundle,
         )
 
         peerConnection = PeerConnection(rtcConfiguration = config)
@@ -102,11 +104,16 @@ class WebRtcClient {
         val offer = createOffer()
         setLocalDescription(offer)
 
-        // Wait for ICE gathering to complete
-        peerConnection!!.onIceGatheringState
-            .first { it == IceGatheringState.Complete }
+        val gatheringCompleted = withTimeoutOrNull(4_000L) {
+            peerConnection!!.onIceGatheringState
+                .first { state -> state == IceGatheringState.Complete }
+            true
+        } ?: false
 
-        // Local description now contains all ICE candidates
+        if (!gatheringCompleted) {
+            println("[WebRTC] WARNING: ICE gathering did not complete before timeout — proceeding anyway")
+        }
+
         return peerConnection!!.localDescription!!.sdp
     }
 

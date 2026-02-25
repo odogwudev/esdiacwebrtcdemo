@@ -14,6 +14,8 @@ object AppContextHolder {
         val context = appContext ?: return null
         return context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
     }
+
+    fun applicationContext(): Context? = appContext
 }
 
 actual object AudioRouteController {

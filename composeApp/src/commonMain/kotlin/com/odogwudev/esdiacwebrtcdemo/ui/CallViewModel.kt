@@ -16,9 +16,13 @@ import com.shepeliev.webrtckmp.SessionDescriptionType
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -54,6 +58,14 @@ class CallViewModel : ViewModel() {
     private var vertoClient: VertoClient? = null
     private val webRtcClient = WebRtcClient()
     private var callTimerJob: Job? = null
+    private var endCallJob: Job? = null
+    private var isRemoteDescriptionSet: Boolean = false
+    private val foregroundPhases = setOf(
+        CallPhase.Connecting,
+        CallPhase.Calling,
+        CallPhase.Ringing,
+        CallPhase.Connected
+    )
 
     private val webRtcListener = object : WebRtcListener {
         override fun onIceCandidateGenerated(candidate: IceCandidate) {
@@ -69,8 +81,55 @@ class CallViewModel : ViewModel() {
         }
     }
 
+    init {
+        viewModelScope.launch {
+            CallControlActionBus.actions.collect { action ->
+                when (action) {
+                    CallControlAction.EndCall -> {
+                        if (_uiState.value.screen == Screen.IN_CALL) {
+                            endCall()
+                        }
+                    }
+                    CallControlAction.ToggleSpeaker -> {
+                        if (_uiState.value.screen == Screen.IN_CALL) {
+                            toggleSpeaker()
+                        }
+                    }
+                }
+                CallControlActionBus.consume(action)
+            }
+        }
+
+        viewModelScope.launch {
+            uiState
+                .map { state ->
+                    CallBackgroundState(
+                        destinationNumber = state.destinationNumber,
+                        callPhase = state.callPhase,
+                        isMuted = state.isMuted,
+                        isSpeakerOn = state.isSpeakerOn,
+                        shouldRunService = state.screen == Screen.IN_CALL && state.callPhase in foregroundPhases
+                    )
+                }
+                .distinctUntilChanged()
+                .collect { state ->
+                    if (state.shouldRunService) {
+                        CallBackgroundService.startOrUpdate(
+                            destinationNumber = state.destinationNumber,
+                            callPhase = state.callPhase,
+                            isMuted = state.isMuted,
+                            isSpeakerOn = state.isSpeakerOn
+                        )
+                    } else {
+                        CallBackgroundService.stop()
+                    }
+                }
+        }
+    }
+
     fun makeCall(destinationNumber: String) {
         stopConnectedTimer()
+        isRemoteDescriptionSet = false
         AudioRouteController.reset()
         _uiState.update {
             it.copy(
@@ -127,23 +186,13 @@ class CallViewModel : ViewModel() {
             client.events.collect { event ->
                 when (event) {
                     is VertoEvent.Media -> {
-                        val remoteSdp = SessionDescription(
-                            type = SessionDescriptionType.Answer,
-                            sdp = event.sdp
-                        )
-                        webRtcClient.setRemoteDescription(remoteSdp)
+                        applyRemoteAnswerSdpIfNeeded(event.sdp, "verto.media")
                     }
                     is VertoEvent.Answer -> {
-                        event.sdp?.let { sdp ->
-                            val remoteSdp = SessionDescription(
-                                type = SessionDescriptionType.Answer,
-                                sdp = sdp
-                            )
-                            webRtcClient.setRemoteDescription(remoteSdp)
-                        }
+                        applyRemoteAnswerSdpIfNeeded(event.sdp, "verto.answer")
                         markCallConnected()
                     }
-                    is VertoEvent.Bye -> endCall()
+                    is VertoEvent.Bye -> finalizeCall(sendBye = false)
                     is VertoEvent.Error -> {
                         stopConnectedTimer()
                         _uiState.update {
@@ -188,25 +237,41 @@ class CallViewModel : ViewModel() {
     }
 
     fun endCall() {
-        stopConnectedTimer()
-        viewModelScope.launch {
-            try {
-                vertoClient?.sendBye()
-            } catch (_: Exception) { }
+        if (endCallJob?.isActive == true) return
+        endCallJob = viewModelScope.launch {
+            finalizeCall(sendBye = true)
         }
-        webRtcClient.dispose()
-        vertoClient?.disconnect()
-        vertoClient = null
-        AudioRouteController.reset()
-        _uiState.update { CallUiState() }
     }
 
     override fun onCleared() {
         super.onCleared()
         stopConnectedTimer()
+        isRemoteDescriptionSet = false
         webRtcClient.dispose()
         vertoClient?.disconnect()
         AudioRouteController.reset()
+        CallBackgroundService.stop()
+    }
+
+    private suspend fun finalizeCall(sendBye: Boolean) {
+        stopConnectedTimer()
+        isRemoteDescriptionSet = false
+
+        if (sendBye) {
+            withTimeoutOrNull(1_500L) {
+                try {
+                    vertoClient?.sendBye()
+                } catch (_: Exception) {
+                    // Ignore signaling errors and continue teardown.
+                }
+            }
+        }
+
+        webRtcClient.dispose()
+        vertoClient?.disconnect()
+        vertoClient = null
+        AudioRouteController.reset()
+        _uiState.update { CallUiState() }
     }
 
     private fun markCallConnected() {
@@ -237,4 +302,93 @@ class CallViewModel : ViewModel() {
         callTimerJob?.cancel()
         callTimerJob = null
     }
+
+    private suspend fun applyRemoteAnswerSdpIfNeeded(sdp: String?, source: String) {
+        if (sdp.isNullOrBlank()) return
+        if (isRemoteDescriptionSet) {
+            println("[WebRTC] Ignoring remote SDP from $source because remote description is already set")
+            return
+        }
+
+        val normalizedSdp = normalizeAnswerSdpForUnifiedPlan(sdp)
+        val remoteSdp = SessionDescription(
+            type = SessionDescriptionType.Answer,
+            sdp = normalizedSdp
+        )
+
+        try {
+            webRtcClient.setRemoteDescription(remoteSdp)
+            isRemoteDescriptionSet = true
+        } catch (e: Exception) {
+            _uiState.update {
+                it.copy(
+                    errorMessage = "Failed to apply remote SDP ($source): ${e.message}",
+                    callPhase = CallPhase.Error
+                )
+            }
+        }
+    }
+
+    /**
+     * Ensure  a=mid and a=group:BUNDLE lines. exist so Unified Plan/BUNDLE negotiation can complete.
+     */
+    private fun normalizeAnswerSdpForUnifiedPlan(rawSdp: String): String {
+        val hadTrailingLineBreak = rawSdp.endsWith("\r\n") || rawSdp.endsWith("\n")
+        val lineBreak = if (rawSdp.contains("\r\n")) "\r\n" else "\n"
+        val lines = rawSdp
+            .trimEnd('\r', '\n')
+            .split(Regex("\\r?\\n"))
+            .toMutableList()
+        if (lines.isEmpty()) return rawSdp
+
+        val mids = mutableListOf<String>()
+        var mediaSectionIndex = 0
+        var i = 0
+        while (i < lines.size) {
+            if (!lines[i].startsWith("m=")) {
+                i++
+                continue
+            }
+
+            val sectionStart = i
+            var sectionEnd = sectionStart + 1
+            while (sectionEnd < lines.size && !lines[sectionEnd].startsWith("m=")) {
+                sectionEnd++
+            }
+
+            val existingMidIndex = (sectionStart + 1 until sectionEnd)
+                .firstOrNull { index -> lines[index].startsWith("a=mid:") }
+
+            if (existingMidIndex != null) {
+                mids += lines[existingMidIndex].removePrefix("a=mid:")
+            } else {
+                val generatedMid = mediaSectionIndex.toString()
+                lines.add(sectionStart + 1, "a=mid:$generatedMid")
+                mids += generatedMid
+                sectionEnd++
+            }
+
+            mediaSectionIndex++
+            i = sectionEnd
+        }
+
+        val hasBundleGroup = lines.any { it.startsWith("a=group:BUNDLE") }
+        if (!hasBundleGroup && mids.isNotEmpty()) {
+            val firstMediaLineIndex = lines.indexOfFirst { it.startsWith("m=") }
+            if (firstMediaLineIndex >= 0) {
+                lines.add(firstMediaLineIndex, "a=group:BUNDLE ${mids.joinToString(" ")}")
+            }
+        }
+
+        val normalized = lines.joinToString(lineBreak)
+        return if (hadTrailingLineBreak) normalized + lineBreak else normalized
+    }
+
+    private data class CallBackgroundState(
+        val destinationNumber: String,
+        val callPhase: CallPhase,
+        val isMuted: Boolean,
+        val isSpeakerOn: Boolean,
+        val shouldRunService: Boolean
+    )
 }
