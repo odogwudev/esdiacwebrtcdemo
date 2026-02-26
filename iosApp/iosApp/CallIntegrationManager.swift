@@ -1,5 +1,7 @@
 import Foundation
 import CallKit
+import AVFoundation
+import UserNotifications
 #if canImport(ActivityKit)
 import ActivityKit
 #endif
@@ -7,6 +9,16 @@ import ActivityKit
 extension Notification.Name {
     static let esdiacCallStateChanged = Notification.Name("EsdiacCallStateChanged")
     static let esdiacCallKitEndRequested = Notification.Name("EsdiacCallKitEndRequested")
+    static let esdiacCallKitAnswerRequested = Notification.Name("EsdiacCallKitAnswerRequested")
+    static let esdiacCallKitSpeakerToggleRequested = Notification.Name("EsdiacCallKitSpeakerToggleRequested")
+    static let esdiacVoipPushTokenUpdated = Notification.Name("EsdiacVoipPushTokenUpdated")
+    static let esdiacVoipPushReceived = Notification.Name("EsdiacVoipPushReceived")
+}
+
+private enum CallNotificationConstants {
+    static let categoryId = "ACTIVE_CALL_CATEGORY"
+    static let endCallActionId = "END_CALL_ACTION"
+    static let toggleSpeakerActionId = "TOGGLE_SPEAKER_ACTION"
 }
 
 #if canImport(ActivityKit)
@@ -23,7 +35,7 @@ struct EsdiacCallAttributes: ActivityAttributes {
 }
 #endif
 
-final class CallIntegrationManager: NSObject, CXProviderDelegate {
+final class CallIntegrationManager: NSObject, CXProviderDelegate, UNUserNotificationCenterDelegate {
     static let shared = CallIntegrationManager()
 
     private let provider: CXProvider
@@ -56,6 +68,10 @@ final class CallIntegrationManager: NSObject, CXProviderDelegate {
         if isCallKitEnabled {
             provider.setDelegate(self, queue: nil)
         }
+        let notificationCenter = UNUserNotificationCenter.current()
+        notificationCenter.delegate = self
+        notificationCenter.requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
+        registerNotificationActions(on: notificationCenter)
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(onCallStateChanged(_:)),
@@ -66,6 +82,21 @@ final class CallIntegrationManager: NSObject, CXProviderDelegate {
 
     deinit {
         NotificationCenter.default.removeObserver(self)
+    }
+
+    private func registerNotificationActions(on notificationCenter: UNUserNotificationCenter) {
+        let endCallAction = UNNotificationAction(
+            identifier: CallNotificationConstants.endCallActionId,
+            title: "Hang Up",
+            options: [.destructive, .foreground]
+        )
+        let category = UNNotificationCategory(
+            identifier: CallNotificationConstants.categoryId,
+            actions: [endCallAction],
+            intentIdentifiers: [],
+            options: []
+        )
+        notificationCenter.setNotificationCategories([category])
     }
 
     @objc
@@ -147,6 +178,30 @@ final class CallIntegrationManager: NSObject, CXProviderDelegate {
         }
     }
 
+    func reportIncomingCall(uuid: UUID = UUID(), handle: String, displayName: String? = nil) {
+        guard isCallKitEnabled else { return }
+        activeCallUUID = uuid
+        hasReportedConnected = false
+
+        let containsOnlyPhoneChars = handle.rangeOfCharacter(
+            from: CharacterSet(charactersIn: "+0123456789").inverted
+        ) == nil
+        let handleType: CXHandle.HandleType = containsOnlyPhoneChars ? .phoneNumber : .generic
+
+        let update = CXCallUpdate()
+        update.remoteHandle = CXHandle(type: handleType, value: handle)
+        update.localizedCallerName = displayName ?? handle
+        update.hasVideo = false
+
+        provider.reportNewIncomingCall(with: uuid, update: update) { [weak self] error in
+            if let error {
+                print("[CallKit] Incoming call report failed: \(error.localizedDescription)")
+                self?.activeCallUUID = nil
+                self?.hasReportedConnected = false
+            }
+        }
+    }
+
     private func reportConnectedIfNeeded() {
         guard isCallKitEnabled else { return }
         guard let uuid = activeCallUUID, !hasReportedConnected else { return }
@@ -223,6 +278,15 @@ final class CallIntegrationManager: NSObject, CXProviderDelegate {
         action.fulfill()
     }
 
+    func provider(_ provider: CXProvider, perform action: CXAnswerCallAction) {
+        guard isCallKitEnabled else {
+            action.fulfill()
+            return
+        }
+        NotificationCenter.default.post(name: .esdiacCallKitAnswerRequested, object: nil)
+        action.fulfill()
+    }
+
     func provider(_ provider: CXProvider, perform action: CXEndCallAction) {
         guard isCallKitEnabled else {
             action.fulfill()
@@ -232,6 +296,42 @@ final class CallIntegrationManager: NSObject, CXProviderDelegate {
         hasReportedConnected = false
         endLiveActivity()
         NotificationCenter.default.post(name: .esdiacCallKitEndRequested, object: nil)
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         action.fulfill()
+    }
+
+    func provider(_ provider: CXProvider, didActivate audioSession: AVAudioSession) {
+        print("[CallKit] Audio session activated by CallKit")
+    }
+
+    func provider(_ provider: CXProvider, didDeactivate audioSession: AVAudioSession) {
+        print("[CallKit] Audio session deactivated by CallKit")
+    }
+
+    // MARK: - UNUserNotificationCenterDelegate
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        switch response.actionIdentifier {
+        case CallNotificationConstants.endCallActionId:
+            NotificationCenter.default.post(name: .esdiacCallKitEndRequested, object: nil)
+        case CallNotificationConstants.toggleSpeakerActionId:
+            NotificationCenter.default.post(name: .esdiacCallKitSpeakerToggleRequested, object: nil)
+        default:
+            break
+        }
+        completionHandler()
+    }
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        // Suppress notification banner when app is in foreground
+        completionHandler([])
     }
 }

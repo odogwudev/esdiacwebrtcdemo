@@ -53,6 +53,17 @@
         </array>
         <key>NSSupportsLiveActivities</key>
         <true/>
+        <key>CFBundleURLTypes</key>
+        <array>
+            <dict>
+                <key>CFBundleURLName</key>
+                <string>com.odogwudev.esdiacwebrtcdemo</string>
+                <key>CFBundleURLSchemes</key>
+                <array>
+                    <string>esdiac</string>
+                </array>
+            </dict>
+        </array>
         <key>NSCameraUsageDescription</key>
         <string>Access to the camera is required.</string>
         <key>NSMicrophoneUsageDescription</key>

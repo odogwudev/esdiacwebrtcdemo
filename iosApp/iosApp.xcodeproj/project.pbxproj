@@ -8,16 +8,53 @@
 
 /* Begin PBXBuildFile section */
 		56A06B132B11649E39D1AF3F /* Pods_iosApp.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 40F57B385BB934CC0E6946EA /* Pods_iosApp.framework */; };
+		A1B2C3D400000001 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000010 /* WidgetKit.framework */; };
+		A1B2C3D400000002 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000011 /* SwiftUI.framework */; };
+		A1B2C3D400000003 /* EsdiacCallWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000020 /* EsdiacCallWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A1B2C3D400000030 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 101E6928F1D7F16B408351EE /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A1B2C3D400000040;
+			remoteInfo = EsdiacCallWidgetExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A1B2C3D400000050 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A1B2C3D400000003 /* EsdiacCallWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		40F57B385BB934CC0E6946EA /* Pods_iosApp.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_iosApp.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		6FE33ABEF18F94F0A06AD5EF /* Esdiacwebrtcdemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Esdiacwebrtcdemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		82869710E3A31A005317601C /* Pods-iosApp.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-iosApp.release.xcconfig"; path = "Target Support Files/Pods-iosApp/Pods-iosApp.release.xcconfig"; sourceTree = "<group>"; };
+		A1B2C3D400000010 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		A1B2C3D400000011 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		A1B2C3D400000020 /* EsdiacCallWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = EsdiacCallWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		E0100F182B6DD53EC861A082 /* Pods-iosApp.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-iosApp.debug.xcconfig"; path = "Target Support Files/Pods-iosApp/Pods-iosApp.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A1B2C3D400000060 /* Exceptions for "EsdiacCallWidget" folder in "EsdiacCallWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = A1B2C3D400000040 /* EsdiacCallWidgetExtension */;
+		};
 		B50D1D5C02006C1788D11905 /* Exceptions for "iosApp" folder in "iosApp" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -33,6 +70,14 @@
 			exceptions = (
 			);
 			path = Configuration;
+			sourceTree = "<group>";
+		};
+		A1B2C3D400000070 /* EsdiacCallWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A1B2C3D400000060 /* Exceptions for "EsdiacCallWidget" folder in "EsdiacCallWidgetExtension" target */,
+			);
+			path = EsdiacCallWidget;
 			sourceTree = "<group>";
 		};
 		AC431ADF55809009F5192427 /* iosApp */ = {
@@ -54,6 +99,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A1B2C3D400000080 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1B2C3D400000001 /* WidgetKit.framework in Frameworks */,
+				A1B2C3D400000002 /* SwiftUI.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -70,6 +124,8 @@
 			isa = PBXGroup;
 			children = (
 				40F57B385BB934CC0E6946EA /* Pods_iosApp.framework */,
+				A1B2C3D400000010 /* WidgetKit.framework */,
+				A1B2C3D400000011 /* SwiftUI.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -79,6 +135,7 @@
 			children = (
 				1180F54BCB5644939338288D /* Configuration */,
 				AC431ADF55809009F5192427 /* iosApp */,
+				A1B2C3D400000070 /* EsdiacCallWidget */,
 				BE82A9321E30F72CE4988E83 /* Products */,
 				05035C9EEDB8994785821347 /* Pods */,
 				4F39DCA3059B533826967A4C /* Frameworks */,
@@ -89,6 +146,7 @@
 			isa = PBXGroup;
 			children = (
 				6FE33ABEF18F94F0A06AD5EF /* Esdiacwebrtcdemo.app */,
+				A1B2C3D400000020 /* EsdiacCallWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -107,10 +165,12 @@
 				DA65F5CFA788A13C07E93F42 /* Resources */,
 				8C092F1AF6D5B7723557784E /* [CP] Embed Pods Frameworks */,
 				BAE2B70B3C52BD2663AE3D85 /* [CP] Copy Pods Resources */,
+				A1B2C3D400000050 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				A1B2C3D400000031 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				AC431ADF55809009F5192427 /* iosApp */,
@@ -120,6 +180,26 @@
 			productReference = 6FE33ABEF18F94F0A06AD5EF /* Esdiacwebrtcdemo.app */;
 			productType = "com.apple.product-type.application";
 		};
+		A1B2C3D400000040 /* EsdiacCallWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1B2C3D4000000A0 /* Build configuration list for PBXNativeTarget "EsdiacCallWidgetExtension" */;
+			buildPhases = (
+				A1B2C3D400000090 /* Sources */,
+				A1B2C3D400000080 /* Frameworks */,
+				A1B2C3D4000000B0 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				A1B2C3D400000070 /* EsdiacCallWidget */,
+			);
+			name = EsdiacCallWidgetExtension;
+			productName = EsdiacCallWidgetExtension;
+			productReference = A1B2C3D400000020 /* EsdiacCallWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -128,9 +208,12 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1620;
-				LastUpgradeCheck = 1620;
+				LastUpgradeCheck = 2620;
 				TargetAttributes = {
 					19737B3ABC12EA62B72AE2C0 = {
+						CreatedOnToolsVersion = 16.2;
+					};
+					A1B2C3D400000040 = {
 						CreatedOnToolsVersion = 16.2;
 					};
 				};
@@ -150,11 +233,19 @@
 			projectRoot = "";
 			targets = (
 				19737B3ABC12EA62B72AE2C0 /* iosApp */,
+				A1B2C3D400000040 /* EsdiacCallWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		A1B2C3D4000000B0 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		DA65F5CFA788A13C07E93F42 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -250,7 +341,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A1B2C3D400000090 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A1B2C3D400000031 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A1B2C3D400000040 /* EsdiacCallWidgetExtension */;
+			targetProxy = A1B2C3D400000030 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		2C1D207B0E8BE2DA811D0BA3 /* Debug */ = {
@@ -290,6 +396,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = P82FJ7PXQD;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -313,6 +420,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -322,13 +430,11 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = E0100F182B6DD53EC861A082 /* Pods-iosApp.debug.xcconfig */;
 			buildSettings = {
-				ARCHS = arm64;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
-				DEVELOPMENT_TEAM = P82FJ7PXQD;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iosApp/Info.plist;
@@ -347,17 +453,71 @@
 			};
 			name = Debug;
 		};
+		A1B2C3D4000000C0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = P82FJ7PXQD;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = EsdiacCallWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = EsdiacCallWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.odogwudev.esdiacwebrtcdemo.Esdiacwebrtcdemo.EsdiacCallWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A1B2C3D4000000D0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = P82FJ7PXQD;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = EsdiacCallWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = EsdiacCallWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.odogwudev.esdiacwebrtcdemo.Esdiacwebrtcdemo.EsdiacCallWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		B6A9B2FBF38B43FBD8920452 /* Release */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 82869710E3A31A005317601C /* Pods-iosApp.release.xcconfig */;
 			buildSettings = {
-				ARCHS = arm64;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
-				DEVELOPMENT_TEAM = P82FJ7PXQD;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iosApp/Info.plist;
@@ -413,6 +573,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = P82FJ7PXQD;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -429,6 +590,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
 			};
@@ -437,6 +599,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		A1B2C3D4000000A0 /* Build configuration list for PBXNativeTarget "EsdiacCallWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1B2C3D4000000C0 /* Debug */,
+				A1B2C3D4000000D0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		AA8AE0F9DF3B6B632E7A97A9 /* Build configuration list for PBXNativeTarget "iosApp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
