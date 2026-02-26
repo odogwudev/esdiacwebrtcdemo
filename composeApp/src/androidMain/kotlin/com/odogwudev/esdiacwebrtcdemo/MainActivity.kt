@@ -14,6 +14,7 @@ class MainActivity : ComponentActivity() {
 
     private val requestPermissionLauncher =
         registerForActivityResult(RequestMultiplePermissions()) { _ ->
+            checkBatteryOptimization()
             setContent { App() }
         }
 
@@ -34,7 +35,18 @@ class MainActivity : ComponentActivity() {
         if (missingPermissions.isNotEmpty()) {
             requestPermissionLauncher.launch(missingPermissions.toTypedArray())
         } else {
+            checkBatteryOptimization()
             setContent { App() }
+        }
+    }
+
+    private fun checkBatteryOptimization() {
+        if (!BatteryOptimizationHelper.isIgnoringBatteryOptimizations(this)) {
+            if (BatteryOptimizationHelper.isAggressiveOemDevice()) {
+                BatteryOptimizationHelper.openOemBatterySettings(this)
+            } else {
+                BatteryOptimizationHelper.requestIgnoreBatteryOptimizations(this)
+            }
         }
     }
 }
