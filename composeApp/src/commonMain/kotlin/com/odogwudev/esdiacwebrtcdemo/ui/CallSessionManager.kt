@@ -285,7 +285,8 @@ object CallSessionManager {
             return
         }
 
-        val normalizedSdp = normalizeAnswerSdpForUnifiedPlan(sdp)
+        val offerSdp = webRtcClient.getLocalSdp()
+        val normalizedSdp = normalizeAnswerSdpForUnifiedPlan(sdp, offerSdp)
         val remoteSdp = SessionDescription(
             type = SessionDescriptionType.Answer,
             sdp = normalizedSdp
@@ -294,7 +295,7 @@ object CallSessionManager {
         try {
             webRtcClient.setRemoteDescription(remoteSdp)
             isRemoteDescriptionSet = true
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             _uiState.update {
                 it.copy(
                     errorMessage = "Failed to apply remote SDP ($source): ${e.message}",
@@ -304,7 +305,10 @@ object CallSessionManager {
         }
     }
 
-    private fun normalizeAnswerSdpForUnifiedPlan(rawSdp: String): String {
+    /**
+     * Aligns the answer SDP with the offer so
+     */
+    private fun normalizeAnswerSdpForUnifiedPlan(rawSdp: String, offerSdp: String?): String {
         val hadTrailingLineBreak = rawSdp.endsWith("\r\n") || rawSdp.endsWith("\n")
         val lineBreak = if (rawSdp.contains("\r\n")) "\r\n" else "\n"
         val lines = rawSdp
@@ -313,7 +317,10 @@ object CallSessionManager {
             .toMutableList()
         if (lines.isEmpty()) return rawSdp
 
-        val mids = mutableListOf<String>()
+        // Extract the ordered mids from the offer so we can force-align the answer.
+        val offerMids = offerSdp?.let { extractOrderedMids(it) } ?: emptyList()
+
+        val answerMids = mutableListOf<String>()
         var mediaSectionIndex = 0
         var i = 0
         while (i < lines.size) {
@@ -328,32 +335,56 @@ object CallSessionManager {
                 sectionEnd++
             }
 
+            // Determine the correct mid: prefer the offer's mid for this position.
+            val targetMid = offerMids.getOrNull(mediaSectionIndex)
+                ?: mediaSectionIndex.toString()
+
             val existingMidIndex = (sectionStart + 1 until sectionEnd)
-                .firstOrNull { index -> lines[index].startsWith("a=mid:") }
+                .firstOrNull { idx -> lines[idx].startsWith("a=mid:") }
 
             if (existingMidIndex != null) {
-                mids += lines[existingMidIndex].removePrefix("a=mid:")
+                // Replace with the offer's mid so they match.
+                lines[existingMidIndex] = "a=mid:$targetMid"
             } else {
-                val generatedMid = mediaSectionIndex.toString()
-                lines.add(sectionStart + 1, "a=mid:$generatedMid")
-                mids += generatedMid
+                lines.add(sectionStart + 1, "a=mid:$targetMid")
                 sectionEnd++
             }
+            answerMids += targetMid
 
             mediaSectionIndex++
             i = sectionEnd
         }
 
-        val hasBundleGroup = lines.any { it.startsWith("a=group:BUNDLE") }
-        if (!hasBundleGroup && mids.isNotEmpty()) {
+        // Ensure a=group:BUNDLE line exists and lists the correct mids.
+        val bundleLineIndex = lines.indexOfFirst { it.startsWith("a=group:BUNDLE") }
+        val bundleLine = "a=group:BUNDLE ${answerMids.joinToString(" ")}"
+        if (bundleLineIndex >= 0) {
+            lines[bundleLineIndex] = bundleLine
+        } else if (answerMids.isNotEmpty()) {
             val firstMediaLineIndex = lines.indexOfFirst { it.startsWith("m=") }
             if (firstMediaLineIndex >= 0) {
-                lines.add(firstMediaLineIndex, "a=group:BUNDLE ${mids.joinToString(" ")}")
+                lines.add(firstMediaLineIndex, bundleLine)
             }
         }
 
         val normalized = lines.joinToString(lineBreak)
         return if (hadTrailingLineBreak) normalized + lineBreak else normalized
+    }
+
+    /** Returns the ordered list of mid values from the given SDP. */
+    private fun extractOrderedMids(sdp: String): List<String> {
+        val mids = mutableListOf<String>()
+        val sdpLines = sdp.split(Regex("\\r?\\n"))
+        var inMediaSection = false
+        for (line in sdpLines) {
+            if (line.startsWith("m=")) {
+                inMediaSection = true
+            } else if (inMediaSection && line.startsWith("a=mid:")) {
+                mids += line.removePrefix("a=mid:")
+                inMediaSection = false
+            }
+        }
+        return mids
     }
 
     private data class NotificationState(

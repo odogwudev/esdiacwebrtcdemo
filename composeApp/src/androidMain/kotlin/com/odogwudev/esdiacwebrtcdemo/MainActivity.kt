@@ -14,7 +14,6 @@ class MainActivity : ComponentActivity() {
 
     private val requestPermissionLauncher =
         registerForActivityResult(RequestMultiplePermissions()) { _ ->
-            checkBatteryOptimization()
             setContent { App() }
         }
 
@@ -22,6 +21,10 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         AppContextHolder.initialize(applicationContext)
+
+        // Register a self-managed PhoneAccount so the system treats our
+        // VoIP calls like cellular calls (same approach as WhatsApp).
+        TelecomBridge.register(this)
 
         val requiredPermissions = buildList {
             add(Manifest.permission.RECORD_AUDIO)
@@ -35,18 +38,7 @@ class MainActivity : ComponentActivity() {
         if (missingPermissions.isNotEmpty()) {
             requestPermissionLauncher.launch(missingPermissions.toTypedArray())
         } else {
-            checkBatteryOptimization()
             setContent { App() }
-        }
-    }
-
-    private fun checkBatteryOptimization() {
-        if (!BatteryOptimizationHelper.isIgnoringBatteryOptimizations(this)) {
-            if (BatteryOptimizationHelper.isAggressiveOemDevice()) {
-                BatteryOptimizationHelper.openOemBatterySettings(this)
-            } else {
-                BatteryOptimizationHelper.requestIgnoreBatteryOptimizations(this)
-            }
         }
     }
 }

@@ -121,6 +121,8 @@ class WebRtcClient {
         peerConnection?.addIceCandidate(candidate)
     }
 
+    fun getLocalSdp(): String? = peerConnection?.localDescription?.sdp
+
     fun setAudioEnabled(enabled: Boolean) {
         localStream?.audioTracks?.forEach { track ->
             track.enabled = enabled
