@@ -12,9 +12,12 @@ import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.odogwudev.esdiacwebrtcdemo.ui.CallControlAction
 import com.odogwudev.esdiacwebrtcdemo.ui.CallControlActionBus
 import com.odogwudev.esdiacwebrtcdemo.ui.CallPhase
+import com.odogwudev.esdiacwebrtcdemo.ui.CallSessionManager
+import com.odogwudev.esdiacwebrtcdemo.ui.Screen
 
 class CallForegroundService : Service() {
 
@@ -23,6 +26,8 @@ class CallForegroundService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        AppContextHolder.initialize(applicationContext)
+        CallSessionManager
         createNotificationChannel()
         acquireWakeLock()
         acquireWifiLock()
@@ -60,9 +65,15 @@ class CallForegroundService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        restartIfCallStillActive()
+        super.onTaskRemoved(rootIntent)
+    }
+
     override fun onDestroy() {
         releaseWifiLock()
         releaseWakeLock()
+        restartIfCallStillActive()
         stopForeground(STOP_FOREGROUND_REMOVE)
         super.onDestroy()
     }
@@ -110,7 +121,9 @@ class CallForegroundService : Service() {
         isSpeakerOn: Boolean
     ): Notification {
         val openAppIntent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         val contentIntent = PendingIntent.getActivity(
             this,
@@ -163,6 +176,8 @@ class CallForegroundService : Service() {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
+            .setBadgeIconType(NotificationCompat.BADGE_ICON_SMALL)
+            .setNumber(1)
             .addAction(
                 NotificationCompat.Action.Builder(
                     android.R.drawable.ic_menu_close_clear_cancel,
@@ -189,9 +204,24 @@ class CallForegroundService : Service() {
             NotificationManager.IMPORTANCE_HIGH
         ).apply {
             description = getString(R.string.call_notification_channel_description)
-            setShowBadge(false)
+            setShowBadge(true)
         }
         manager.createNotificationChannel(channel)
+    }
+
+    private fun restartIfCallStillActive() {
+        val state = CallSessionManager.uiState.value
+        val inForegroundCall = state.screen == Screen.IN_CALL && state.callPhase in FOREGROUND_PHASES
+        if (!inForegroundCall) return
+
+        val restartIntent = startOrUpdateIntent(
+            context = applicationContext,
+            destinationNumber = state.destinationNumber,
+            callPhase = state.callPhase,
+            isMuted = state.isMuted,
+            isSpeakerOn = state.isSpeakerOn
+        )
+        ContextCompat.startForegroundService(applicationContext, restartIntent)
     }
 
     companion object {
@@ -199,6 +229,12 @@ class CallForegroundService : Service() {
         private const val NOTIFICATION_ID = 1001
         private const val WAKE_LOCK_TAG = "esdiacwebrtc:call_wake_lock"
         private const val WIFI_LOCK_TAG = "esdiacwebrtc:call_wifi_lock"
+        private val FOREGROUND_PHASES = setOf(
+            CallPhase.Connecting,
+            CallPhase.Calling,
+            CallPhase.Ringing,
+            CallPhase.Connected
+        )
 
         const val ACTION_START_OR_UPDATE = "com.odogwudev.esdiacwebrtcdemo.action.START_OR_UPDATE_CALL"
         const val ACTION_HANGUP = "com.odogwudev.esdiacwebrtcdemo.action.HANGUP_CALL"

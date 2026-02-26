@@ -32,7 +32,8 @@
         <service
             android:name=".CallForegroundService"
             android:exported="false"
-            android:foregroundServiceType="microphone|phoneCall" />
+            android:foregroundServiceType="microphone|phoneCall"
+            android:stopWithTask="false" />
     </application>
 
 </manifest>
