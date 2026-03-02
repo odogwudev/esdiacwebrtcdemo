@@ -19,9 +19,11 @@ import platform.AVFAudio.AVAudioSessionPortOverrideNone
 import platform.AVFAudio.AVAudioSessionPortOverrideSpeaker
 import platform.AVFAudio.AVAudioSessionPortUSBAudio
 import platform.AVFAudio.AVAudioSessionRouteChangeNotification
+import platform.AVFAudio.AVAudioSessionRouteDescription
 import platform.AVFAudio.setActive
 import platform.Foundation.NSNotificationCenter
 import platform.Foundation.NSOperationQueue
+import platform.Foundation.valueForKey
 import platform.darwin.NSObjectProtocol
 
 actual object AudioRouteController {
@@ -76,7 +78,7 @@ actual object AudioRouteController {
             AudioRouteType.Bluetooth, AudioRouteType.WiredHeadset -> {
                 session.overrideOutputAudioPort(AVAudioSessionPortOverrideNone, error = null)
                 @Suppress("UNCHECKED_CAST")
-                val inputs = session.availableInputs as? List<AVAudioSessionPortDescription>
+                val inputs = session.valueForKey("availableInputs") as? List<AVAudioSessionPortDescription>
                 val matchingPort = inputs?.firstOrNull { port ->
                     port.UID == route.id
                 }
@@ -125,7 +127,7 @@ actual object AudioRouteController {
         val routes = mutableListOf(defaultEarpiece, defaultSpeaker)
 
         @Suppress("UNCHECKED_CAST")
-        val inputs = session.availableInputs as? List<AVAudioSessionPortDescription> ?: emptyList()
+        val inputs = session.valueForKey("availableInputs") as? List<AVAudioSessionPortDescription> ?: emptyList()
         for (port in inputs) {
             val portType = port.portType
             when (portType) {
@@ -160,9 +162,9 @@ actual object AudioRouteController {
     @OptIn(ExperimentalForeignApi::class)
     private fun detectActiveRoute() {
         val session = AVAudioSession.sharedInstance()
-        val currentRoute = session.currentRoute ?: return
+        val currentRoute = session.valueForKey("currentRoute") as? AVAudioSessionRouteDescription ?: return
         @Suppress("UNCHECKED_CAST")
-        val outputs = currentRoute.outputs as? List<AVAudioSessionPortDescription> ?: return
+        val outputs = currentRoute.valueForKey("outputs") as? List<AVAudioSessionPortDescription> ?: return
         val output = outputs.firstOrNull() ?: return
 
         val detectedType = when (output.portType) {
