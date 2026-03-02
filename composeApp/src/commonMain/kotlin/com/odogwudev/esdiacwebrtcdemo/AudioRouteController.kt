@@ -1,6 +1,12 @@
 package com.odogwudev.esdiacwebrtcdemo
 
+import kotlinx.coroutines.flow.StateFlow
+
 expect object AudioRouteController {
-    fun setSpeakerEnabled(enabled: Boolean)
+    val availableRoutes: StateFlow<List<AudioRoute>>
+    val activeRoute: StateFlow<AudioRoute>
+    fun selectRoute(route: AudioRoute)
+    fun startMonitoring()
+    fun toggleSpeaker()
     fun reset()
 }

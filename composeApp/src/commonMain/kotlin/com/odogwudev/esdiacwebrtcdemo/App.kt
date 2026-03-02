@@ -30,7 +30,9 @@ fun App() {
                 Screen.IN_CALL -> CallScreen(
                     callState = state,
                     onMuteToggle = viewModel::toggleMute,
-                    onSpeakerToggle = viewModel::toggleSpeaker,
+                    onAudioRouteClick = viewModel::showAudioRouteSheet,
+                    onAudioRouteSelected = viewModel::selectAudioRoute,
+                    onAudioRouteDismiss = viewModel::hideAudioRouteSheet,
                     onDialpadToggle = viewModel::toggleDialpad,
                     onDtmfDigit = viewModel::sendDtmf,
                     onHoldToggle = viewModel::toggleHold,

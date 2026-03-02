@@ -1,6 +1,8 @@
 package com.odogwudev.esdiacwebrtcdemo.ui
 
+import com.odogwudev.esdiacwebrtcdemo.AudioRoute
 import com.odogwudev.esdiacwebrtcdemo.AudioRouteController
+import com.odogwudev.esdiacwebrtcdemo.AudioRouteType
 import com.odogwudev.esdiacwebrtcdemo.DtmfTonePlayer
 import com.odogwudev.esdiacwebrtcdemo.verto.VertoClient
 import com.odogwudev.esdiacwebrtcdemo.verto.VertoConfig
@@ -83,6 +85,18 @@ object CallSessionManager {
         }
 
         scope.launch {
+            AudioRouteController.availableRoutes.collect { routes ->
+                _uiState.update { it.copy(availableAudioRoutes = routes) }
+            }
+        }
+
+        scope.launch {
+            AudioRouteController.activeRoute.collect { route ->
+                _uiState.update { it.copy(activeAudioRoute = route) }
+            }
+        }
+
+        scope.launch {
             uiState
                 .map { state ->
                     NotificationState(
@@ -91,14 +105,15 @@ object CallSessionManager {
                         isMuted = state.isMuted,
                         isSpeakerOn = state.isSpeakerOn,
                         isOnHold = state.isOnHold,
-                        shouldRunService = state.screen == Screen.IN_CALL && state.callPhase in foregroundPhases
+                        shouldRunService = state.screen == Screen.IN_CALL && state.callPhase in foregroundPhases,
+                        useProximity = state.activeAudioRoute.type == AudioRouteType.Earpiece
                     )
                 }
                 .distinctUntilChanged()
                 .collect { state ->
                     CallProximityController.update(
                         inCall = state.shouldRunService,
-                        speakerOn = state.isSpeakerOn
+                        useProximity = state.useProximity
                     )
                     if (state.shouldRunService) {
                         CallBackgroundService.startOrUpdate(
@@ -119,13 +134,13 @@ object CallSessionManager {
         stopConnectedTimer()
         isRemoteDescriptionSet = false
         endCallJob = null
-        AudioRouteController.setSpeakerEnabled(false)
+        AudioRouteController.startMonitoring()
         _uiState.update {
             it.copy(
                 screen = Screen.IN_CALL,
                 destinationNumber = destinationNumber,
                 isMuted = false,
-                isSpeakerOn = false,
+                isAudioRouteSheetVisible = false,
                 callPhase = CallPhase.Connecting,
                 connectedDurationSeconds = 0L,
                 connectionState = PeerConnectionState.New,
@@ -234,9 +249,19 @@ object CallSessionManager {
     }
 
     fun toggleSpeaker() {
-        val newSpeakerState = !_uiState.value.isSpeakerOn
-        _uiState.update { it.copy(isSpeakerOn = newSpeakerState) }
-        AudioRouteController.setSpeakerEnabled(newSpeakerState)
+        AudioRouteController.toggleSpeaker()
+    }
+
+    fun selectAudioRoute(route: AudioRoute) {
+        AudioRouteController.selectRoute(route)
+    }
+
+    fun showAudioRouteSheet() {
+        _uiState.update { it.copy(isAudioRouteSheetVisible = true) }
+    }
+
+    fun hideAudioRouteSheet() {
+        _uiState.update { it.copy(isAudioRouteSheetVisible = false) }
     }
 
     fun endCall() {
@@ -434,6 +459,7 @@ object CallSessionManager {
         val isMuted: Boolean,
         val isSpeakerOn: Boolean,
         val isOnHold: Boolean,
-        val shouldRunService: Boolean
+        val shouldRunService: Boolean,
+        val useProximity: Boolean
     )
 }

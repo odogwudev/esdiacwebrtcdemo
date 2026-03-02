@@ -30,8 +30,8 @@ actual object CallProximityController {
         override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
     }
 
-    actual fun update(inCall: Boolean, speakerOn: Boolean) {
-        val shouldEnable = inCall && !speakerOn
+    actual fun update(inCall: Boolean, useProximity: Boolean) {
+        val shouldEnable = inCall && useProximity
         shouldEnableProximity = shouldEnable
         if (!shouldEnable) {
             isNear = false
