@@ -31,6 +31,9 @@ fun App() {
                     callState = state,
                     onMuteToggle = viewModel::toggleMute,
                     onSpeakerToggle = viewModel::toggleSpeaker,
+                    onDialpadToggle = viewModel::toggleDialpad,
+                    onDtmfDigit = viewModel::sendDtmf,
+                    onHoldToggle = viewModel::toggleHold,
                     onEndCall = viewModel::endCall
                 )
             }

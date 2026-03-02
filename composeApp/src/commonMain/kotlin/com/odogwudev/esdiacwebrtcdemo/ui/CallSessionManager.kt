@@ -1,6 +1,7 @@
 package com.odogwudev.esdiacwebrtcdemo.ui
 
 import com.odogwudev.esdiacwebrtcdemo.AudioRouteController
+import com.odogwudev.esdiacwebrtcdemo.DtmfTonePlayer
 import com.odogwudev.esdiacwebrtcdemo.verto.VertoClient
 import com.odogwudev.esdiacwebrtcdemo.verto.VertoConfig
 import com.odogwudev.esdiacwebrtcdemo.verto.VertoEvent
@@ -73,6 +74,9 @@ object CallSessionManager {
                     CallControlAction.ToggleSpeaker -> {
                         if (_uiState.value.screen == Screen.IN_CALL) toggleSpeaker()
                     }
+                    CallControlAction.ToggleHold -> {
+                        if (_uiState.value.screen == Screen.IN_CALL) toggleHold()
+                    }
                 }
                 CallControlActionBus.consume(action)
             }
@@ -86,6 +90,7 @@ object CallSessionManager {
                         callPhase = state.callPhase,
                         isMuted = state.isMuted,
                         isSpeakerOn = state.isSpeakerOn,
+                        isOnHold = state.isOnHold,
                         shouldRunService = state.screen == Screen.IN_CALL && state.callPhase in foregroundPhases
                     )
                 }
@@ -100,7 +105,8 @@ object CallSessionManager {
                             destinationNumber = state.destinationNumber,
                             callPhase = state.callPhase,
                             isMuted = state.isMuted,
-                            isSpeakerOn = state.isSpeakerOn
+                            isSpeakerOn = state.isSpeakerOn,
+                            isOnHold = state.isOnHold
                         )
                     } else {
                         CallBackgroundService.stop()
@@ -193,6 +199,40 @@ object CallSessionManager {
         webRtcClient.setAudioEnabled(!newMuted)
     }
 
+    fun sendDtmf(digit: String) {
+        DtmfTonePlayer.play(digit)
+        scope.launch {
+            try {
+                vertoClient?.sendDtmf(digit)
+            } catch (_: Exception) {
+                // Best-effort — don't fail the call for a missed DTMF
+            }
+        }
+    }
+
+    fun toggleDialpad() {
+        _uiState.update { it.copy(isDialpadVisible = !it.isDialpadVisible) }
+    }
+
+    fun toggleHold() {
+        val currentlyHeld = _uiState.value.isOnHold
+        scope.launch {
+            try {
+                val direction = if (currentlyHeld) "sendrecv" else "sendonly"
+                val action = if (currentlyHeld) "unhold" else "hold"
+                val sdp = webRtcClient.createOfferAndGatherIceWithDirection(direction)
+                // Allow the incoming verto.answer to re-apply remote SDP
+                isRemoteDescriptionSet = false
+                vertoClient?.sendModify(action, sdp)
+                _uiState.update { it.copy(isOnHold = !currentlyHeld) }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(errorMessage = "Hold failed: ${e.message}")
+                }
+            }
+        }
+    }
+
     fun toggleSpeaker() {
         val newSpeakerState = !_uiState.value.isSpeakerOn
         _uiState.update { it.copy(isSpeakerOn = newSpeakerState) }
@@ -244,6 +284,7 @@ object CallSessionManager {
         webRtcClient.dispose()
         vertoClient?.disconnect()
         vertoClient = null
+        DtmfTonePlayer.release()
         CallProximityController.reset()
         AudioRouteController.reset()
         _uiState.update { CallUiState() }
@@ -392,6 +433,7 @@ object CallSessionManager {
         val callPhase: CallPhase,
         val isMuted: Boolean,
         val isSpeakerOn: Boolean,
+        val isOnHold: Boolean,
         val shouldRunService: Boolean
     )
 }

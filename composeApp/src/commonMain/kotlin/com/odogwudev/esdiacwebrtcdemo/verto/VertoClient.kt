@@ -143,6 +143,18 @@ class VertoClient(private val config: VertoConfig) {
         return callId
     }
 
+    suspend fun sendModify(action: String, sdp: String) {
+        val callId = currentCallId ?: return
+        val msg = VertoMessages.modify(callId, action, sdp)
+        send(msg)
+    }
+
+    suspend fun sendDtmf(digit: String) {
+        val callId = currentCallId ?: return
+        val msg = VertoMessages.info(callId, digit)
+        send(msg)
+    }
+
     suspend fun sendBye() {
         val callId = currentCallId ?: return
         _state.value = VertoState.HangingUp

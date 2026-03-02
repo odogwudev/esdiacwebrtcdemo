@@ -19,7 +19,8 @@ actual object CallBackgroundService {
         destinationNumber: String,
         callPhase: CallPhase,
         isMuted: Boolean,
-        isSpeakerOn: Boolean
+        isSpeakerOn: Boolean,
+        isOnHold: Boolean
     ) {
         val context = AppContextHolder.applicationContext() ?: return
 
@@ -30,6 +31,7 @@ actual object CallBackgroundService {
             }
             if (telecomPlaced) {
                 TelecomBridge.updateCallPhase(callPhase)
+                TelecomBridge.updateHoldState(isOnHold)
             }
         }
 

@@ -117,6 +117,15 @@ class WebRtcClient {
         return peerConnection!!.localDescription!!.sdp
     }
 
+    /**
+     * Creates an offer with the specified media direction, gathers ICE candidates,
+     * and returns the final SDP. Used for hold (sendonly) and unhold (sendrecv).
+     */
+    suspend fun createOfferAndGatherIceWithDirection(direction: String): String {
+        val sdp = createOfferAndGatherIce()
+        return sdp.replace("a=sendrecv", "a=$direction")
+    }
+
     suspend fun addIceCandidate(candidate: IceCandidate) {
         peerConnection?.addIceCandidate(candidate)
     }

@@ -36,7 +36,8 @@ actual object CallBackgroundService {
         destinationNumber: String,
         callPhase: CallPhase,
         isMuted: Boolean,
-        isSpeakerOn: Boolean
+        isSpeakerOn: Boolean,
+        isOnHold: Boolean
     ) {
         val session = AVAudioSession.sharedInstance()
         session.setCategory(AVAudioSessionCategoryPlayAndRecord, error = null)

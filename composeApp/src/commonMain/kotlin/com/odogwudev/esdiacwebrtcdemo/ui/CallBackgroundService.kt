@@ -5,7 +5,8 @@ expect object CallBackgroundService {
         destinationNumber: String,
         callPhase: CallPhase,
         isMuted: Boolean,
-        isSpeakerOn: Boolean
+        isSpeakerOn: Boolean,
+        isOnHold: Boolean
     )
     fun stop()
 }

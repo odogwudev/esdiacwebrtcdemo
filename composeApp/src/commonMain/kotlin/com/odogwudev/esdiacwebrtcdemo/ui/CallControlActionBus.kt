@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 sealed interface CallControlAction {
     data object EndCall : CallControlAction
     data object ToggleSpeaker : CallControlAction
+    data object ToggleHold : CallControlAction
 }
 
 object CallControlActionBus {

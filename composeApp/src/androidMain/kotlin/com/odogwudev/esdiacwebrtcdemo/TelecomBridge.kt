@@ -90,6 +90,12 @@ object TelecomBridge {
         activeConnection?.updatePhase(phase)
     }
 
+    /** Mirror hold state to the active Telecom [VoipConnection]. */
+    fun updateHoldState(isOnHold: Boolean) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        activeConnection?.updateHoldState(isOnHold)
+    }
+
     /** Tear down the Telecom connection (e.g. when CallSessionManager ends the call). */
     fun endCall() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return

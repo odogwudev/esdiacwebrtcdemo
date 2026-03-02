@@ -21,6 +21,8 @@ data class CallUiState(
     val destinationNumber: String = "",
     val isMuted: Boolean = false,
     val isSpeakerOn: Boolean = false,
+    val isDialpadVisible: Boolean = false,
+    val isOnHold: Boolean = false,
     val callPhase: CallPhase = CallPhase.Idle,
     val connectedDurationSeconds: Long = 0L,
     val connectionState: PeerConnectionState = PeerConnectionState.New,
@@ -35,6 +37,12 @@ class CallViewModel : ViewModel() {
     fun toggleMute() = CallSessionManager.toggleMute()
 
     fun toggleSpeaker() = CallSessionManager.toggleSpeaker()
+
+    fun sendDtmf(digit: String) = CallSessionManager.sendDtmf(digit)
+
+    fun toggleDialpad() = CallSessionManager.toggleDialpad()
+
+    fun toggleHold() = CallSessionManager.toggleHold()
 
     fun endCall() = CallSessionManager.endCall()
 }

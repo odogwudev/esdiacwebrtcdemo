@@ -55,6 +55,37 @@ object VertoMessages {
         return msg.toString()
     }
 
+    fun info(callId: String, dtmf: String): String {
+        val msg = buildJsonObject {
+            put("jsonrpc", "2.0")
+            put("method", "verto.info")
+            put("id", nextId())
+            putJsonObject("params") {
+                putJsonObject("dialogParams") {
+                    put("callID", callId)
+                }
+                put("dtmf", dtmf)
+            }
+        }
+        return msg.toString()
+    }
+
+    fun modify(callId: String, action: String, sdp: String): String {
+        val msg = buildJsonObject {
+            put("jsonrpc", "2.0")
+            put("method", "verto.modify")
+            put("id", nextId())
+            putJsonObject("params") {
+                putJsonObject("dialogParams") {
+                    put("callID", callId)
+                }
+                put("action", action)
+                put("sdp", sdp)
+            }
+        }
+        return msg.toString()
+    }
+
     fun bye(callId: String, cause: String = "NORMAL_CLEARING"): String {
         val msg = buildJsonObject {
             put("jsonrpc", "2.0")

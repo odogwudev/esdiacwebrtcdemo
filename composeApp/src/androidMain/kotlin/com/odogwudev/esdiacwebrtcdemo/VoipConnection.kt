@@ -51,7 +51,19 @@ class VoipConnection : Connection() {
         markDisconnected(DisconnectCause.CANCELED)
     }
 
+    override fun onHold() {
+        CallControlActionBus.dispatch(CallControlAction.ToggleHold)
+    }
+
+    override fun onUnhold() {
+        CallControlActionBus.dispatch(CallControlAction.ToggleHold)
+    }
+
     // ---------- state mirroring from CallSessionManager ----------
+
+    fun updateHoldState(isOnHold: Boolean) {
+        if (isOnHold) setOnHold() else setActive()
+    }
 
     fun updatePhase(phase: CallPhase) {
         when (phase) {
